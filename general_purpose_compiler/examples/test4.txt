@@ -1,0 +1,9 @@
+program if_test;
+var x: integer;
+begin
+    read(x);
+    if x > 0 then
+        writeln('positive')
+    else
+        writeln('not positive');
+end.
