@@ -5,18 +5,26 @@ from ast_printer import print_ast
 
 def main():
     input_string = """
-program test;
-var a, b: integer;
-begin
-    a := 10;
-    b := a + 20;
-    writeln('Result: ', b);
-end.
-"""
+    var
+        x, y: integer;
+    
+    begin
+        readln(x);
+        readln(y);
+    
+        writeln('x = ', x, ', y = ', y);
+    
+        x := y;
+        y := x;
+    
+        writeln('x = ', x, ', y = ', y);
+    end.
+    """
+
     try:
         parser = Parser(input_string)
+
         ast = parser.parse_program()
-        print("\nAST дерево:")
         print_ast(ast)
     except CompilerError as e:
         print(e.full_message())
