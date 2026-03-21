@@ -1,5 +1,5 @@
-
 import re
+
 from error import CompilerError
 
 class Token:
@@ -17,8 +17,7 @@ class Lexer:
         ('NUMBER', r'\d+(\.\d*)?'),
         ('STRING', r"'([^']*)'"),
         ('IDENT', r'[a-zA-Z_][a-zA-Z0-9_]*'),
-        ('KEYWORD',
-         r'program|var|begin|end|if|then|else|while|for|to|downto|do|repeat|until|write|writeln|read|readln|integer|char|boolean|real|string|array|of|and|or|not|div|mod'),
+        ('KEYWORD', r'program|var|begin|end|if|then|else|while|for|to|downto|do|repeat|until|write|writeln|read|readln|integer|char|boolean|real|string|array|of|and|or|not|div|mod'),
         ('OP', r':=|[<>]=|<>|[<>]|[+\-*/=]'),
         ('DOTDOT', r'\.\.'),
         ('DOT', r'\.'),
@@ -72,7 +71,33 @@ class Lexer:
         return self.tokens
 
     def get_keywords(self):
-        return {'program', 'var', 'begin', 'end', 'if', 'then', 'else', 'while',
-                'for', 'to', 'downto', 'do', 'repeat', 'until', 'write', 'writeln',
-                'read', 'readln', 'integer', 'char', 'boolean', 'real', 'string',
-                'array', 'of', 'and', 'or', 'not', 'div', 'mod'}
+        return {'program',
+                'var',
+                'begin',
+                'end',
+                'if',
+                'then',
+                'else',
+                'while',
+                'for',
+                'to',
+                'downto',
+                'do',
+                'repeat',
+                'until',
+                'write',
+                'writeln',
+                'read',
+                'readln',
+                'integer',
+                'char',
+                'boolean',
+                'real',
+                'string',
+                'array',
+                'of',
+                'and',
+                'or',
+                'not',
+                'div',
+                'mod'}
