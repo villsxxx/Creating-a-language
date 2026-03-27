@@ -23,7 +23,6 @@ def main():
 
     try:
         parser = Parser(input_string)
-
         ast = parser.parse_program()
         print_ast(ast)
     except CompilerError as e:
