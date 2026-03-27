@@ -8,7 +8,8 @@ def main():
         "examples/test1.txt",
         "examples/test2.txt",
         "examples/test3.txt",
-        "examples/test4.txt"
+        "examples/test4.txt",
+        "examples/test5.txt",
     ]
 
     for i, filename in enumerate(test_files):

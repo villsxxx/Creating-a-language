@@ -14,7 +14,7 @@ class Token:
 
 class Lexer:
     spec = [
-        ('NUMBER', r'\d+(\.\d*)?'),
+        ('NUMBER', r'\d+(\.\d+)?'),
         ('STRING', r"'([^']*)'"),
         ('IDENT', r'[a-zA-Z_][a-zA-Z0-9_]*'),
         ('KEYWORD', r'program|var|begin|end|if|then|else|while|for|to|downto|do|repeat|until|write|writeln|read|readln|integer|char|boolean|real|string|array|of|and|or|not|div|mod'),

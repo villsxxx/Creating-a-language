@@ -274,9 +274,7 @@ class Parser:
             self.consume()
             return ProcCall(name, args)
         else:
-            raise CompilerError(f"Ожидается ':=' или '(', найдено {self.current.value if self.current else 'EOF'}",
-                                self.current.line if self.current else 0,
-                                self.current.column if self.current else 0)
+            raise CompilerError(f"Ожидается ':=' или '(', найдено {self.current.value if self.current else 'EOF'}", self.current.line if self.current else 0, self.current.column if self.current else 0)
 
     def parse_expression(self):
         return self.parse_logical_or()
@@ -374,5 +372,4 @@ class Parser:
             self.consume()
             return node
         else:
-            raise CompilerError(f"Неожиданный токен в выражении: {self.current.value}",
-                                self.current.line, self.current.column)
+            raise CompilerError(f"Неожиданный токен в выражении: {self.current.value}", self.current.line, self.current.column)
