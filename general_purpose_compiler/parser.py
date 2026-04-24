@@ -2,6 +2,7 @@ from lexer import Lexer, Token
 from error import CompilerError
 from ast import *
 
+
 class Parser:
     def __init__(self, code):
         self.lexer = Lexer(code)
@@ -99,16 +100,19 @@ class Parser:
             self.consume()
             self.expect(value='[')
             self.consume()
-            low = self.parse_expression()
+            low_node = self.parse_expression()
             self.expect(value='..')
             self.consume()
-            high = self.parse_expression()
+            high_node = self.parse_expression()
             self.expect(value=']')
             self.consume()
             self.expect(value='of')
             self.consume()
             elem_type = self.parse_type()
-            return f'array[{low}..{high}] of {elem_type}'
+
+            low_val = low_node.value if isinstance(low_node, Literal) else '0'
+            high_val = high_node.value if isinstance(high_node, Literal) else '10'
+            return f'array[{low_val}..{high_val}] of {elem_type}'
         else:
             raise CompilerError("Ожидается тип", self.current.line, self.current.column)
 

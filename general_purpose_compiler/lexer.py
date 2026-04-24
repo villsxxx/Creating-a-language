@@ -1,4 +1,3 @@
-
 import re
 from error import CompilerError
 
@@ -14,7 +13,7 @@ class Token:
 
 class Lexer:
     spec = [
-        ('NUMBER', r'\d+(\.\d*)?'),
+        ('NUMBER', r'\d+(\.\d+)?'),
         ('STRING', r"'([^']*)'"),
         ('IDENT', r'[a-zA-Z_][a-zA-Z0-9_]*'),
         ('KEYWORD',
