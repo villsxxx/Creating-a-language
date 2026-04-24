@@ -2,13 +2,21 @@ from ast import *
 
 def print_ast(node, indent=0):
     prefix = "  " * indent
-    if isinstance(node, Program):
+    if isinstance(node, SimpleType):
+        print(f"{prefix}SimpleType({node.name})")
+    elif isinstance(node, Program):
         print(f"{prefix}Program(name={node.name})")
         for decl in node.declarations:
-            print_ast(decl, indent+1)
-        print_ast(node.statements, indent+1)
+            print_ast(decl, indent + 1)
+        print_ast(node.statements, indent + 1)
+    elif isinstance(node, ArrayType):
+        print(f"{prefix}ArrayType")
+        print(f"{prefix}  bounds: {node.low}..{node.high}")
+        print(f"{prefix}  element_type:")
+        print_ast(node.element_type, indent + 2)
     elif isinstance(node, VarDecl):
-        print(f"{prefix}VarDecl(names={node.names}, type={node.type})")
+        print(f"{prefix}VarDecl(names={node.names})")
+        print_ast(node.type, indent + 1)
     elif isinstance(node, Assign):
         print(f"{prefix}Assign")
         print_ast(node.left, indent+1)
@@ -47,6 +55,9 @@ def print_ast(node, indent=0):
         print_ast(node.right, indent+1)
     elif isinstance(node, UnaryOp):
         print(f"{prefix}UnaryOp({node.op})")
+        print_ast(node.expr, indent+1)
+    elif isinstance(node, Cast):
+        print(f"{prefix}Cast(to={node.target_type})")
         print_ast(node.expr, indent+1)
     elif isinstance(node, Literal):
         print(f"{prefix}Literal({node.value}, type={node.type})")

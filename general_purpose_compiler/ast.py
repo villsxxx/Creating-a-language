@@ -1,6 +1,23 @@
 class ASTNode:
     pass
 
+
+class TypeSpec(ASTNode):
+    pass
+
+
+class SimpleType(TypeSpec):
+    def __init__(self, name):
+        self.name = name
+
+
+class ArrayType(TypeSpec):
+    def __init__(self, low, high, element_type):
+        self.low = low
+        self.high = high
+        self.element_type = element_type
+
+
 class Program(ASTNode):
     def __init__(self, name, declarations, statements):
         self.name = name
@@ -36,6 +53,12 @@ class UnaryOp(ASTNode):
     def __init__(self, op, expr):
         self.op = op
         self.expr = expr
+
+
+class Cast(ASTNode):
+    def __init__(self, expr, target_type):
+        self.expr = expr
+        self.target_type = target_type
 
 class FuncCall(ASTNode):
     def __init__(self, name, args):

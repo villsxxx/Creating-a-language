@@ -40,12 +40,10 @@ class Parser:
                 name = self.consume().value
             else:
                 raise CompilerError("Ожидается имя программы", self.current.line, self.current.column)
-
             self.expect(value=';')
             self.consume()
         else:
             name = None
-
         decls = self.parse_declarations()
 
         self.expect(value='begin')
@@ -59,9 +57,7 @@ class Parser:
         if self.check(value='.'):
             self.consume()
         else:
-            raise CompilerError("Ожидается '.' в конце программы",
-                                self.current.line if self.current else 0,
-                                self.current.column if self.current else 0)
+            raise CompilerError("Ожидается '.' в конце программы",self.current.line if self.current else 0,self.current.column if self.current else 0)
 
         if self.current:
             raise CompilerError("Лишний код после точки", self.current.line, self.current.column)
@@ -94,7 +90,7 @@ class Parser:
     def parse_type(self):
         if self.check(value='integer') or self.check(value='char') or self.check(value='boolean') or self.check(
                 value='real') or self.check(value='string'):
-            return self.consume().value
+            return SimpleType(self.consume().value)
         elif self.check(value='array'):
             self.consume()
             self.expect(value='[')
@@ -108,7 +104,7 @@ class Parser:
             self.expect(value='of')
             self.consume()
             elem_type = self.parse_type()
-            return f'array[{low}..{high}] of {elem_type}'
+            return ArrayType(low, high, elem_type)
         else:
             raise CompilerError("Ожидается тип", self.current.line, self.current.column)
 
@@ -138,8 +134,7 @@ class Parser:
         elif self.check(kind='IDENT'):
             return self.parse_assignment_or_call()
         else:
-            raise CompilerError(f"Неожиданный токен {self.current.value}",
-                                self.current.line, self.current.column)
+            raise CompilerError(f"Неожиданный токен {self.current.value}", self.current.line, self.current.column)
 
     def parse_block(self):
         self.consume()
