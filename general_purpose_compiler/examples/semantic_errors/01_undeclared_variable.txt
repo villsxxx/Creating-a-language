@@ -1,0 +1,7 @@
+program undeclared_variable;
+var
+    x: integer;
+begin
+    x := 10;
+    y := x + 1;
+end.

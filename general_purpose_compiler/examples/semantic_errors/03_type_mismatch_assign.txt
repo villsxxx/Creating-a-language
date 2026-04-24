@@ -1,0 +1,6 @@
+program type_mismatch_assign;
+var
+    flag: boolean;
+begin
+    flag := 123;
+end.

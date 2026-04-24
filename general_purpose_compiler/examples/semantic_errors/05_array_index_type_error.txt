@@ -1,0 +1,8 @@
+program array_index_type_error;
+var
+    arr: array[1..3] of integer;
+    r: real;
+begin
+    r := 1.5;
+    arr[r] := 10;
+end.

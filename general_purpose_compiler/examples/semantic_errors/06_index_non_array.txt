@@ -1,0 +1,6 @@
+program index_non_array;
+var
+    x: integer;
+begin
+    x[1] := 10;
+end.

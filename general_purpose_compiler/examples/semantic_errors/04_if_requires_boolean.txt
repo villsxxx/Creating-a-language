@@ -1,0 +1,8 @@
+program if_requires_boolean;
+var
+    x: integer;
+begin
+    x := 5;
+    if x then
+        writeln('ok');
+end.
