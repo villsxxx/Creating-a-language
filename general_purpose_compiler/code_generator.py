@@ -19,11 +19,6 @@ from ast import (
 
 
 class PythonCodeGenerator:
-    """
-    Генератор исполняемого кода под платформу Python.
-    На выходе - готовый .py файл.
-    """
-
     def __init__(self, symbols):
         self.symbols = symbols
         self.lines = []

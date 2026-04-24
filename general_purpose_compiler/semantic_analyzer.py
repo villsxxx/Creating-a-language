@@ -22,13 +22,6 @@ from error import CompilerError
 
 
 class SemanticAnalyzer:
-    """
-    Простая семантическая проверка:
-    - объявления и использование переменных;
-    - проверки типов;
-    - вставка Cast в AST (типозависимая модификация).
-    """
-
     def __init__(self):
         self.symbols = {}
 
