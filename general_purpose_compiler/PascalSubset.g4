@@ -1,7 +1,15 @@
 grammar PascalSubset;
 
 program
-    : PROGRAM IDENT SEMI declarations block DOT EOF
+    : PROGRAM IDENT SEMI declarations functions block DOT EOF
+    ;
+
+functions
+    : functionDecl*
+    ;
+
+functionDecl
+    : FUNCTION IDENT COLON typeSpec SEMI block SEMI
     ;
 
 declarations

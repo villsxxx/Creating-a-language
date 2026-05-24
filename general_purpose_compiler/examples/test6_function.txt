@@ -1,0 +1,12 @@
+program func_test;
+var x: integer;
+
+function five: integer;
+begin
+    five := 5;
+end;
+
+begin
+    x := five;
+    writeln('x = ', x);
+end.

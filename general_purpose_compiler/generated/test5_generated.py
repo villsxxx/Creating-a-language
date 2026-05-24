@@ -1,10 +1,8 @@
 def main():
-    # declarations
     arr = [0] * 5
     i = 0
     s = 0
     
-    # statements
     i = 1
     while (i <= 5):
         arr[i - 1] = (i * 2)

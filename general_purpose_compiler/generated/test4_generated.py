@@ -1,8 +1,6 @@
 def main():
-    # declarations
     i = 0
     
-    # statements
     i = 1
     while (not (i > 5)):
         print(str(i), sep='', end='\n')

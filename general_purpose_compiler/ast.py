@@ -19,10 +19,17 @@ class ArrayType(TypeSpec):
 
 
 class Program(ASTNode):
-    def __init__(self, name, declarations, statements):
+    def __init__(self, name, declarations, statements, functions=None):
         self.name = name
         self.declarations = declarations
+        self.functions = functions or []
         self.statements = statements
+
+class FunctionDecl(ASTNode):
+    def __init__(self, name, result_type, body):
+        self.name = name
+        self.result_type = result_type
+        self.body = body
 
 class VarDecl(ASTNode):
     def __init__(self, names, typ):

@@ -8,7 +8,13 @@ def print_ast(node, indent=0):
         print(f"{prefix}Program(name={node.name})")
         for decl in node.declarations:
             print_ast(decl, indent + 1)
+        for fn in node.functions:
+            print_ast(fn, indent + 1)
         print_ast(node.statements, indent + 1)
+    elif isinstance(node, FunctionDecl):
+        print(f"{prefix}FunctionDecl({node.name})")
+        print_ast(node.result_type, indent + 1)
+        print_ast(node.body, indent + 1)
     elif isinstance(node, ArrayType):
         print(f"{prefix}ArrayType")
         print(f"{prefix}  bounds: {node.low}..{node.high}")

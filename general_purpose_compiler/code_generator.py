@@ -6,6 +6,7 @@ from ast import (
     Block,
     Cast,
     For,
+    FunctionDecl,
     If,
     Literal,
     Program,
@@ -19,10 +20,13 @@ from ast import (
 
 
 class PythonCodeGenerator:
-    def __init__(self, symbols):
+    def __init__(self, symbols, functions=None):
         self.symbols = symbols
+        self.functions = {fn.name for fn in (functions or [])}
         self.lines = []
         self.indent = 0
+        self.current_fn = None
+        self.current_fn_ret = None
 
     def generate(self, program_node):
         if not isinstance(program_node, Program):
@@ -31,14 +35,15 @@ class PythonCodeGenerator:
         self.lines = []
         self.indent = 0
 
+        for fn in program_node.functions:
+            self._emit_function(fn)
+
         self._emit("def main():")
         self.indent += 1
-        self._emit("# declarations")
         for decl in program_node.declarations:
             self._emit_declaration(decl)
 
         self._emit("")
-        self._emit("# statements")
         self._emit_statement(program_node.statements)
         self.indent -= 1
 
@@ -49,6 +54,23 @@ class PythonCodeGenerator:
         self.indent -= 1
 
         return "\n".join(self.lines) + "\n"
+
+    def _emit_function(self, fn):
+        ret = f"_{fn.name}_ret"
+        self._emit(f"def {fn.name}():")
+        self.indent += 1
+        if isinstance(fn.result_type, SimpleType):
+            self._emit(f"{ret} = {self._default_value(fn.result_type.name)}")
+        self.current_fn = fn.name
+        self.current_fn_ret = ret
+        self.functions.discard(fn.name)
+        self._emit_statement(fn.body)
+        self.functions.add(fn.name)
+        self.current_fn = None
+        self.current_fn_ret = None
+        self._emit(f"return {ret}")
+        self.indent -= 1
+        self._emit("")
 
     def _emit(self, line):
         self.lines.append("    " * self.indent + line)
@@ -85,7 +107,12 @@ class PythonCodeGenerator:
             return
 
         if isinstance(stmt, Assign):
-            left_code = self._expr(stmt.left)
+            if isinstance(stmt.left, Variable) and stmt.left.name == getattr(self, "current_fn", None):
+                left_code = self.current_fn_ret
+            elif isinstance(stmt.left, Variable):
+                left_code = stmt.left.name
+            else:
+                left_code = self._expr(stmt.left)
             right_code = self._expr(stmt.right)
             self._emit(f"{left_code} = {right_code}")
             return
@@ -154,6 +181,8 @@ class PythonCodeGenerator:
             return repr(node.value)
 
         if isinstance(node, Variable):
+            if node.name in self.functions:
+                return f"{node.name}()"
             return node.name
 
         if isinstance(node, ArrayAccess):

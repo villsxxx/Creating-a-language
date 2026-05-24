@@ -45,6 +45,7 @@ class Parser:
         else:
             name = None
         decls = self.parse_declarations()
+        functions = self.parse_functions()
 
         self.expect(value='begin')
         self.consume()
@@ -62,7 +63,29 @@ class Parser:
         if self.current:
             raise CompilerError("Лишний код после точки", self.current.line, self.current.column)
 
-        return Program(name, decls, Block(statements))
+        return Program(name, decls, Block(statements), functions)
+
+    def parse_functions(self):
+        functions = []
+        while self.check(value='function'):
+            self.consume()
+            if not self.check(kind='IDENT'):
+                raise CompilerError("Ожидается имя функции", self.current.line, self.current.column)
+            fname = self.consume().value
+            self.expect(value=':')
+            self.consume()
+            result_type = self.parse_type()
+            self.expect(value=';')
+            self.consume()
+            self.expect(value='begin')
+            self.consume()
+            body_stmts = self.parse_statements()
+            self.expect(value='end')
+            self.consume()
+            self.expect(value=';')
+            self.consume()
+            functions.append(FunctionDecl(fname, result_type, Block(body_stmts)))
+        return functions
 
     def parse_declarations(self):
         decls = []

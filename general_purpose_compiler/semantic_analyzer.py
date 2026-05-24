@@ -6,6 +6,8 @@ from ast import (
     Block,
     Cast,
     For,
+    FuncCall,
+    FunctionDecl,
     If,
     Literal,
     ProcCall,
@@ -24,14 +26,33 @@ from error import CompilerError
 class SemanticAnalyzer:
     def __init__(self):
         self.symbols = {}
+        self.functions = {}
 
     def analyze(self, program_node):
         if not isinstance(program_node, Program):
             raise CompilerError("Ожидается узел Program для семантического анализа")
 
         self._collect_declarations(program_node.declarations)
+        self._collect_functions(program_node.functions)
+        for fn in program_node.functions:
+            self._visit_function(fn)
         self._visit_block(program_node.statements)
         return program_node
+
+    def _collect_functions(self, functions):
+        for fn in functions:
+            if not isinstance(fn, FunctionDecl):
+                continue
+            if fn.name in self.functions or fn.name in self.symbols:
+                raise CompilerError(f"Повторное объявление функции '{fn.name}'")
+            if not isinstance(fn.result_type, SimpleType):
+                raise CompilerError("Функция может возвращать только простой тип")
+            self.functions[fn.name] = fn.result_type.name
+
+    def _visit_function(self, fn):
+        saved = dict(self.symbols)
+        self._visit_block(fn.body)
+        self.symbols = saved
 
     def _collect_declarations(self, declarations):
         for decl in declarations:
@@ -127,7 +148,10 @@ class SemanticAnalyzer:
         raise CompilerError(f"Неизвестный оператор: {type(stmt).__name__}")
 
     def _check_assign(self, stmt):
-        left_type = self._expr_type(stmt.left)
+        if isinstance(stmt.left, Variable) and stmt.left.name in self.functions:
+            left_type = self.functions[stmt.left.name]
+        else:
+            left_type = self._expr_type(stmt.left)
         right_type = self._expr_type(stmt.right)
 
         if left_type == right_type:
@@ -149,7 +173,16 @@ class SemanticAnalyzer:
             self._expr_type(node.expr)
             return node.target_type
 
+        if isinstance(node, FuncCall):
+            if node.name not in self.functions:
+                raise CompilerError(f"Неизвестная функция '{node.name}'")
+            if node.args:
+                raise CompilerError("Функции без параметров не принимают аргументы")
+            return self.functions[node.name]
+
         if isinstance(node, Variable):
+            if node.name in self.functions:
+                return self.functions[node.name]
             if node.name not in self.symbols:
                 raise CompilerError(f"Использована необъявленная переменная '{node.name}'")
             typ = self.symbols[node.name]
