@@ -36,12 +36,25 @@ python main_file.py
 python generated/test2_generated.py
 ```
 
-Сборка x86 (нужны NASM и MinGW/gcc):
+Запуск x86 **без установки** NASM/gcc (эмуляция сгенерированного asm на Python):
 
 ```bash
-nasm -f win32 generated/test2_generated.asm -o generated/test2.obj
-gcc generated/test2.obj -o generated/test2.exe -lmsvcrt
-generated/test2.exe
+python run_x86.py generated/test2_generated.asm
+```
+
+Сборка в exe (NASM + MinGW gcc, Windows x64):
+
+```powershell
+python main_file.py
+.\build_x86.ps1 generated\test2_generated.asm
+```
+
+Или вручную:
+
+```powershell
+nasm -f win64 generated\test2_generated.asm -o generated\test2.obj
+gcc -no-pie generated\test2.obj -o generated\test2.exe
+.\generated\test2.exe
 ```
 
 Проверка семантических ошибок:

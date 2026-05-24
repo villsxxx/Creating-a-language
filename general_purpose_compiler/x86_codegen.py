@@ -9,6 +9,7 @@ from ast import (
     If,
     Literal,
     Program,
+    Read,
     SimpleType,
     UnaryOp,
     Variable,
@@ -39,26 +40,31 @@ class X86CodeGenerator:
         self._scan_strings(program.statements)
         for fn in program.functions:
             self._scan_strings(fn.body)
-        self._emit("bits 32")
+        self._emit("bits 64")
         self._emit("default rel")
         self._emit("section .data")
         for line in self.data:
             self._emit(line)
         self._emit("fmt_int db \"%d\", 0")
+        self._emit("fmt_s db \"%s\", 0")
+        self._emit("fmt_in db \"%d\", 0")
+        self._emit("fmt_char db \"%c\", 10, 0")
         self._emit("")
         self._emit("section .text")
         self._emit("extern printf")
+        self._emit("extern scanf")
         for fn in program.functions:
             self._emit_function(fn)
         self._emit("global main")
         self._emit("main:")
-        self._emit("push ebp")
-        self._emit("mov ebp, esp")
+        self._emit("push rbp")
+        self._emit("mov rbp, rsp")
+        self._emit("and rsp, -16")
         if self.stack_size > 0:
-            self._emit(f"sub esp, {self.stack_size}")
+            self._emit(f"sub rsp, {self.stack_size}")
         self._emit_statement(program.statements)
-        self._emit("mov esp, ebp")
-        self._emit("pop ebp")
+        self._emit("mov rsp, rbp")
+        self._emit("pop rbp")
         self._emit("xor eax, eax")
         self._emit("ret")
         return "\n".join(self.lines) + "\n"
@@ -75,7 +81,7 @@ class X86CodeGenerator:
                     offset += (decl.type.high - decl.type.low + 1) * 4
                 else:
                     offset += 4
-        self.stack_size = ((offset + 3) // 4) * 4
+        self.stack_size = max(48, ((offset + 15) // 16) * 16)
 
     def _next_label(self, prefix):
         self.label_id += 1
@@ -84,13 +90,14 @@ class X86CodeGenerator:
     def _emit_function(self, fn):
         label = f"fn_{fn.name}"
         self._emit(f"{label}:")
-        self._emit("push ebp")
-        self._emit("mov ebp, esp")
-        self._emit("sub esp, 4")
+        self._emit("push rbp")
+        self._emit("mov rbp, rsp")
+        self._emit("and rsp, -16")
+        self._emit("sub rsp, 16")
         self._emit_statement(fn.body)
-        self._emit("mov eax, [ebp-4]")
-        self._emit("mov esp, ebp")
-        self._emit("pop ebp")
+        self._emit("mov eax, [rbp-4]")
+        self._emit("mov rsp, rbp")
+        self._emit("pop rbp")
         self._emit("ret")
 
     def _emit_statement(self, stmt):
@@ -102,17 +109,13 @@ class X86CodeGenerator:
             self._push_expr(stmt.right)
             if isinstance(stmt.left, Variable):
                 if stmt.left.name in self.functions:
-                    self._emit("mov [ebp-4], eax")
+                    self._emit("mov [rbp-4], eax")
                 else:
                     off = self.var_offset[stmt.left.name]
-                    self._emit(f"mov [ebp-{off}], eax")
+                    self._emit(f"mov [rbp-{off}], eax")
             elif isinstance(stmt.left, ArrayAccess):
-                self._emit("mov ebx, eax")
-                self._push_expr(stmt.left.index)
-                arr = self.symbols[stmt.left.name]
-                base = self.var_offset[stmt.left.name]
-                self._emit(f"sub eax, {arr.low}")
-                self._emit(f"mov [ebp-{base}+eax*4], ebx")
+                self._emit("mov ecx, eax")
+                self._array_store(stmt.left, "ecx")
             return
         if isinstance(stmt, If):
             else_label = self._next_label("else")
@@ -143,65 +146,111 @@ class X86CodeGenerator:
         if isinstance(stmt, For):
             off = self.var_offset[stmt.var.name]
             self._push_expr(stmt.start)
-            self._emit(f"mov [ebp-{off}], eax")
+            self._emit(f"mov [rbp-{off}], eax")
             check = self._next_label("forcheck")
             end_lbl = self._next_label("forend")
             self._emit(f"{check}:")
-            self._emit(f"mov eax, [ebp-{off}]")
-            self._emit("push eax")
             self._push_expr(stmt.end)
-            self._emit("pop ebx")
+            self._emit("mov ebx, eax")
+            self._emit(f"mov eax, [rbp-{off}]")
             self._emit("cmp eax, ebx")
             if stmt.direction == "to":
                 self._emit(f"jg {end_lbl}")
             else:
                 self._emit(f"jl {end_lbl}")
             self._emit_statement(stmt.body)
-            self._emit(f"mov eax, [ebp-{off}]")
+            self._emit(f"mov eax, [rbp-{off}]")
             if stmt.direction == "to":
                 self._emit("inc eax")
             else:
                 self._emit("dec eax")
-            self._emit(f"mov [ebp-{off}], eax")
+            self._emit(f"mov [rbp-{off}], eax")
             self._emit(f"jmp {check}")
             self._emit(f"{end_lbl}:")
+            return
+        if isinstance(stmt, Read):
+            for arg in stmt.args:
+                if isinstance(arg, Variable):
+                    off = self.var_offset[arg.name]
+                    self._emit("sub rsp, 32")
+                    self._emit("lea rcx, [rel fmt_in]")
+                    self._emit(f"lea rdx, [rbp-{off}]")
+                    self._emit("call scanf")
+                    self._emit("add rsp, 32")
             return
         if isinstance(stmt, Write):
             for arg in stmt.args:
                 if isinstance(arg, Literal) and arg.type == "string":
                     label = self._string_label(arg.value)
-                    self._emit(f"push dword {label}")
-                    self._emit("call printf")
-                    self._emit("add esp, 4")
+                    self._emit_printf_string(label)
                 else:
                     self._push_expr(arg)
-                    self._emit("push eax")
-                    self._emit("push dword fmt_int")
-                    self._emit("call printf")
-                    self._emit("add esp, 8")
+                    self._emit_printf_int()
             if stmt.newline:
-                self._emit("push 10")
-                self._emit("push dword fmt_int")
+                self._emit("mov edx, 10")
+                self._emit("sub rsp, 32")
+                self._emit("lea rcx, [rel fmt_char]")
                 self._emit("call printf")
-                self._emit("add esp, 8")
+                self._emit("add rsp, 32")
             return
 
-    def _scan_strings(self, block):
-        if not isinstance(block, Block):
+    def _array_index_in_rax(self, access):
+        arr = self.symbols[access.name]
+        self._push_expr(access.index)
+        self._emit(f"sub eax, {arr.low}")
+        self._emit("movsxd rax, eax")
+
+    def _array_store(self, access, value_reg):
+        base = self.var_offset[access.name]
+        self._array_index_in_rax(access)
+        self._emit("imul rax, rax, 4")
+        self._emit("mov rdx, rbp")
+        self._emit(f"sub rdx, {base}")
+        self._emit("sub rdx, rax")
+        self._emit(f"mov [rdx], {value_reg}")
+
+    def _array_load(self, access):
+        base = self.var_offset[access.name]
+        self._array_index_in_rax(access)
+        self._emit("imul rax, rax, 4")
+        self._emit("mov rdx, rbp")
+        self._emit(f"sub rdx, {base}")
+        self._emit("sub rdx, rax")
+        self._emit("mov eax, dword [rdx]")
+
+    def _emit_printf_string(self, label):
+        self._emit("sub rsp, 32")
+        self._emit("lea rcx, [rel fmt_s]")
+        self._emit(f"lea rdx, [rel {label}]")
+        self._emit("call printf")
+        self._emit("add rsp, 32")
+
+    def _emit_printf_int(self, prep=True):
+        if prep:
+            self._emit("mov edx, eax")
+        self._emit("sub rsp, 32")
+        self._emit("lea rcx, [rel fmt_int]")
+        self._emit("call printf")
+        self._emit("add rsp, 32")
+
+    def _scan_strings(self, node):
+        if isinstance(node, Write):
+            for arg in node.args:
+                if isinstance(arg, Literal) and arg.type == "string":
+                    self._string_label(arg.value)
             return
-        for stmt in block.statements:
-            if isinstance(stmt, Write):
-                for arg in stmt.args:
-                    if isinstance(arg, Literal) and arg.type == "string":
-                        self._string_label(arg.value)
-            elif isinstance(stmt, Block):
+        if isinstance(node, Block):
+            for stmt in node.statements:
                 self._scan_strings(stmt)
-            elif isinstance(stmt, If):
-                self._scan_strings(stmt.then_stmt)
-                if stmt.else_stmt:
-                    self._scan_strings(stmt.else_stmt)
-            elif isinstance(stmt, (While, For)):
-                self._scan_strings(stmt.body)
+            return
+        if isinstance(node, If):
+            self._scan_strings(node.then_stmt)
+            if node.else_stmt:
+                self._scan_strings(node.else_stmt)
+            return
+        if isinstance(node, (While, For)):
+            self._scan_strings(node.body)
+            return
 
     def _string_label(self, text):
         if text not in self.string_labels:
@@ -223,14 +272,10 @@ class X86CodeGenerator:
                 self._emit(f"call fn_{node.name}")
                 return
             off = self.var_offset[node.name]
-            self._emit(f"mov eax, [ebp-{off}]")
+            self._emit(f"mov eax, [rbp-{off}]")
             return
         if isinstance(node, ArrayAccess):
-            arr = self.symbols[node.name]
-            base = self.var_offset[node.name]
-            self._push_expr(node.index)
-            self._emit(f"sub eax, {arr.low}")
-            self._emit(f"mov eax, [ebp-{base}+eax*4]")
+            self._array_load(node)
             return
         if isinstance(node, UnaryOp):
             self._push_expr(node.expr)
@@ -241,9 +286,9 @@ class X86CodeGenerator:
             return
         if isinstance(node, BinOp):
             self._push_expr(node.right)
-            self._emit("push eax")
+            self._emit("push rax")
             self._push_expr(node.left)
-            self._emit("pop ebx")
+            self._emit("pop rbx")
             self._emit_binop(node.op)
             return
 
